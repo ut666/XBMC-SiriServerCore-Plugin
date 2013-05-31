@@ -9,6 +9,17 @@ try:
 except ImportError:
     raise NecessaryModuleNotFound('XBMC plugin will not work: JSONRPCLIB not installed. To install, run "easy_install jsonrpclib"')
 
+from jsonrpclib.jsonrpc import TransportMixIn, XMLTransport
+
+class Transport(TransportMixIn, XMLTransport):
+    """Replaces the json-rpc mixin so we can specify the http headers."""
+    def send_content(self, connection, request_body):
+        connection.putheader("Content-Type", "application/json")
+        connection.putheader("Content-Length", str(len(request_body)))
+        connection.endheaders()
+        if request_body:
+            connection.send(request_body)
+
 def get_url():
 
     if GetLogin()[0] and GetLogin()[1] and GetLogin()[2] and GetLogin()[3] != None: 
@@ -48,7 +59,7 @@ class XBMC2(Plugin):
 
       global json
       try:
-         json = jsonrpclib.Server('%s/jsonrpc' %(get_url()))
+         json = jsonrpclib.Server('%s/jsonrpc' %(get_url()), transport=Transport())
       except IOError: 
          print "ERROR (XBMC Plugin): Incomplete XBMC login information, please edit ~/XBMC2/editme.py" 
       
